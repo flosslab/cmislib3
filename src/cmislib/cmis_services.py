@@ -21,6 +21,10 @@
 """
 This module contains the base Binding class and other service objects.
 """
+import logging
+import re
+_logger = logging.getLogger(__name__)
+
 from cmislib.exceptions import PermissionDeniedException, InvalidArgumentException, ObjectNotFoundException, \
     NotSupportedException, UpdateConflictException, RuntimeException, CmisException
 
@@ -46,23 +50,29 @@ class Binding(object):
         that are truly global, like 401 not authorized, should be handled
         here. Callers should handle the rest.
         """
+        complete_err = error.status_code
+        try:
+            err_msg = re.findall(r'<!--message-->(.*?)<!--/message-->', error.text)[0]
+            complete_err = f"{error.status_code}: {err_msg}"
+        except:
+            pass
 
         if error.status_code == 401:
-            raise PermissionDeniedException(error.status_code, url)
+            raise PermissionDeniedException(complete_err, url)
         elif error.status_code == 400:
-            raise InvalidArgumentException(error.status_code, url)
+            raise InvalidArgumentException(complete_err, url)
         elif error.status_code == 404:
-            raise ObjectNotFoundException(error.status_code, url)
+            raise ObjectNotFoundException(complete_err, url)
         elif error.status_code == 403:
-            raise PermissionDeniedException(error.status_code, url)
+            raise PermissionDeniedException(complete_err, url)
         elif error.status_code == 405:
-            raise NotSupportedException(error.status_code, url)
+            raise NotSupportedException(complete_err, url)
         elif error.status_code == 409:
-            raise UpdateConflictException(error.status_code, url)
+            raise UpdateConflictException(complete_err, url)
         elif error.status_code == 500:
-            raise RuntimeException(error.status_code, url)
+            raise RuntimeException(complete_err, url)
         else:
-            raise CmisException(error.status_code, url)
+            raise CmisException(complete_err, url)
 
 
 class RepositoryServiceIfc(object):
